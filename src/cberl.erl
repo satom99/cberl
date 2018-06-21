@@ -409,7 +409,7 @@ decode_query_resp({ok, _, Resp}, cberl_transcoder) ->
             {error, {view_error(Error), Reason}}
     end;
 decode_query_resp({ok, _, Resp}, Transcoder) ->
-    Transcoder:decode([json], Resp);
+    Transcoder:decode_value([json], Resp);
 decode_query_resp({error, _} = E, _Transcoder) -> E.
 
 decode_update_design_doc_resp({ok, Http_Code, _Resp}) when 200 =< Http_Code andalso Http_Code < 300 -> ok;
