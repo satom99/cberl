@@ -17,8 +17,8 @@
 -export([append/4, prepend/4]).
 %% retrieval operations
 -export([get_and_touch/3, get_and_lock/3, mget/2, get/2, unlock/3,
-         mget/3, getl/3, http/6, view/4, foldl/3, foldr/3, foreach/2,
-		 n1ql/4, n1ql/5]).
+         mget/3, getl/3, http/6, view/4, view/5, foldl/3, foldr/3,
+         foreach/2, n1ql/4, n1ql/5]).
 %% removal operations
 -export([remove/2, flush/1, flush/2]).
 %% design doc opertations
@@ -312,6 +312,9 @@ http(PoolPid, Path, Body, ContentType, Method, Type) ->
 %% ViewName view name
 %% Args arguments and filters (limit etc.)
 view(PoolPid, DocName, ViewName, Args) ->
+    view(PoolPid, DocName, ViewName, Args, cberl_transcoder).
+
+view(PoolPid, DocName, ViewName, Args, Transcoder) ->
     Path = string:join(["_design", DocName, "_view", ViewName], "/"),
     Resp = case proplists:get_value(keys, Args) of
         undefined ->
@@ -319,7 +322,7 @@ view(PoolPid, DocName, ViewName, Args) ->
         Keys ->
             http(PoolPid, string:join([Path, query_args(proplists:delete(keys, Args))], "?"), binary_to_list(iolist_to_binary(jiffy:encode({[{keys, Keys}]}))), "application/json", post, view)
     end,
-    decode_query_resp(Resp).
+    decode_query_resp(Resp, Transcoder).
 
 foldl(Func, Acc, {PoolPid, DocName, ViewName, Args}) ->
     case view(PoolPid, DocName, ViewName, Args) of
@@ -396,7 +399,7 @@ http_method(delete) -> 3.
 query_args(Args) when is_list(Args) ->
     string:join([query_arg(A) || A <- Args], "&").
 
-decode_query_resp({ok, _, Resp}) ->
+decode_query_resp({ok, _, Resp}, cberl_transcoder) ->
     case jiffy:decode(Resp) of
         {[{<<"total_rows">>, TotalRows}, {<<"rows">>, Rows}]} ->
             {ok, {TotalRows, lists:map(fun ({Row}) -> Row end, Rows)}};
@@ -405,7 +408,9 @@ decode_query_resp({ok, _, Resp}) ->
         {[{<<"error">>,Error}, {<<"reason">>, Reason}]} ->
             {error, {view_error(Error), Reason}}
     end;
-decode_query_resp({error, _} = E) -> E.
+decode_query_resp({ok, _, Resp}, Transcoder) ->
+    Transcoder:decode([json], Resp);
+decode_query_resp({error, _} = E, _Transcoder) -> E.
 
 decode_update_design_doc_resp({ok, Http_Code, _Resp}) when 200 =< Http_Code andalso Http_Code < 300 -> ok;
 decode_update_design_doc_resp({ok, _Http_Code, Resp}) ->
