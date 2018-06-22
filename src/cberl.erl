@@ -375,7 +375,7 @@ set_design_doc(PoolPid, DocName, DesignDoc) ->
 
 set_design_doc(PoolPid, DocName, DesignDoc, Transcoder) ->
     Path = string:join(["_design", DocName], "/"),
-    Doc = binary_to_list(Transcoder:encode_value([json], DesignDoc))
+    Doc = binary_to_list(Transcoder:encode_value([json], DesignDoc)),
     Resp = http(PoolPid, Path, Doc, "application/json", put, view),
     decode_update_design_doc_resp(Resp).
 
