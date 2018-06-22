@@ -66,7 +66,7 @@ start_link(PoolName, NumCon, Host, Username, Password, BucketName, Certificate, 
                   {username, list_convert(Username)},
                   {password, list_convert(Password)},
                   {bucketname, list_convert(BucketName)},
-                  {transcoder, list_convert(Transcoder)},
+                  {transcoder, Transcoder},
                   {cert, Certificate}],
     poolboy:start_link(PoolArgs, WorkerArgs).
 
