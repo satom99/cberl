@@ -22,7 +22,7 @@
 %% removal operations
 -export([remove/2, flush/1, flush/2]).
 %% design doc opertations
--export([set_design_doc/3, remove_design_doc/2]).
+-export([set_design_doc/3, set_design_doc/4, remove_design_doc/2]).
 -deprecated({append, 4}).
 -deprecated({prepend, 4}).
 
@@ -369,7 +369,14 @@ n1ql(PoolPid, Query, Params, Prepared, TranscoderOpts) when is_binary(Query), is
 
 set_design_doc(PoolPid, DocName, DesignDoc) ->
     Path = string:join(["_design", DocName], "/"),
-    Resp = http(PoolPid, Path, binary_to_list(iolist_to_binary(jiffy:encode(DesignDoc))), "application/json", put, view),
+    Doc = binary_to_list(iolist_to_binary(jiffy:encode(DesignDoc))),
+    Resp = http(PoolPid, Path, Doc, "application/json", put, view),
+    decode_update_design_doc_resp(Resp).
+
+set_design_doc(PoolPid, DocName, DesignDoc, Transcoder) ->
+    Path = string:join(["_design", DocName], "/"),
+    Doc = binary_to_list(Transcoder:encode_value([json], DesignDoc))
+    Resp = http(PoolPid, Path, Doc, "application/json", put, view),
     decode_update_design_doc_resp(Resp).
 
 remove_design_doc(PoolPid, DocName) ->
